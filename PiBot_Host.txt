@@ -1,0 +1,101 @@
+import tkinter as tk 
+import sys 
+import socket
+import time 
+
+#creates and connects socket to connect to Pibot
+cs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+host  = 'LAPTOP-CPT2L0HJ'
+port = 1234
+cs.connect(('192.168.1.19',port))
+
+#declares global variables
+pwmx = 1500
+pwmy = 1500
+laser_on = False 
+msg = '1500,1500,False' #(pwmx,pwmy,laser)
+
+def hello():
+    #says hello
+    print('Hello')
+    mixer.music.play()
+
+def update(x, y, laser):
+    #sends new data to Pibot
+    global cs
+    global msg
+    msg = (x,y,laser)
+    #print(msg)
+    msg1 = str(msg)
+    cs.send(msg1.encode('ascii'))
+    time.sleep(.0100)
+
+def motion(event):
+    #updates position of laser based on mouse position
+    global pwmx
+    global pwmy
+    global laser_on
+    mousex = 0
+    mousey = 0
+    x,y=event.x, event.y
+    angx = x/5.55556
+    angy = y/5.55556 
+    #print(x,y)
+    #print(angx,angy)
+    pwmx = ((angx/180)+1)*1000
+    pwmy = ((angy/180)+1)*1000
+
+    update(pwmx, pwmy, laser_on)
+    
+    #pi.set_servo_pulsewidth(12,pwmx)
+    #pi.set_servo_pulsewidth(16,pwmy)
+    
+def stop():
+    #stops all funcions and closes python 
+    global laser_on 
+    global cs 
+    global pwmx
+    global pwmy 
+    center()
+    laser_on = False 
+    update(pwmx,pwmy,laser_on)
+    cs.close()
+    exit()
+
+def center():
+    #centers laser for calibration 
+    global pwmx
+    global pwmy 
+    global laser_on
+    pwmx = 1500
+    pwmy = 1500
+    update(pwmx,pwmy,laser_on)
+    
+def onoff(event):
+    #toggles laser
+    global laser_on
+    global pwmx
+    global pwmy
+
+    laser_on = not laser_on
+    update(pwmx,pwmy,laser_on)
+
+#creates root window
+master = tk.Tk()
+#creates hello button 
+hi = tk.Button(master, text='Say Hello', command=hello)
+hi.pack(side='left')
+#creates calibrate button
+s=tk.Button(master, text='Calibrate',command=center)
+s.pack() 
+#creates quit button
+q = tk.Button(master, text='Quit', command=stop)
+q.pack(side='right')
+#creates canvas widget and binds motion and clicking to respective functions
+w=tk.Canvas(master, height=1000, width=1000, bg='gray')
+w.bind('<Motion>', motion)
+w.bind('<Button-1>', onoff)
+w.pack()
+
+master.mainloop()
+
